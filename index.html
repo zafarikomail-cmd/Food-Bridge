@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FoodBridge — Waste Management System</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- Top progress bar -->
+<div id="nprogress"></div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- ═════════════════ LOGIN SCREEN ═════════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-brand">
+      <div class="login-logo">🌿</div>
+      <div class="login-title">FoodBridge</div>
+      <div class="login-sub">Waste Management System · NUTECH</div>
+    </div>
+    <div class="login-tabs" id="login-tabs">
+      <button class="login-tab active" id="tab-signin" onclick="switchTab('signin')">Sign In</button>
+      <button class="login-tab" id="tab-signup" onclick="switchTab('signup')">Create Account</button>
+    </div>
+    <div id="login-err" class="login-err"></div>
+
+    <!-- Sign In / Sign Up Form -->
+    <div class="login-form" id="auth-form">
+      <div class="login-field">
+        <label>Email Address</label>
+        <input id="auth-email" type="email" placeholder="zainab@nutech.edu.pk" onkeydown="if(event.key==='Enter')doAuth()"/>
+      </div>
+      <div class="login-field">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <label>Password</label>
+          <button class="forgot-link" id="forgot-btn" onclick="showForgotPanel()" type="button">Forgot password?</button>
+        </div>
+        <div class="pass-wrap">
+          <input id="auth-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doAuth()"/>
+          <button class="eye-btn" type="button" onclick="togglePass('auth-pass','eye-pass1')" id="eye-pass1" title="Show/hide">👁</button>
+        </div>
+      </div>
+      <div class="login-field" id="confirm-field" style="display:none;">
+        <label>Confirm Password</label>
+        <div class="pass-wrap">
+          <input id="auth-confirm" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doAuth()"/>
+          <button class="eye-btn" type="button" onclick="togglePass('auth-confirm','eye-pass2')" id="eye-pass2" title="Show/hide">👁</button>
+        </div>
+        <span class="pass-hint">⚠️ Minimum 6 characters required</span>
+      </div>
+      <button class="login-btn" id="auth-btn" onclick="doAuth()">Sign In</button>
+    </div>
+
+    <!-- Forgot Password -->
+    <div id="forgot-panel">
+      <button class="back-link" onclick="hideForgotPanel()" type="button">← Back to Sign In</button>
+      <div style="font-size:13.5px;color:var(--muted);margin-top:-6px;line-height:1.5;">Enter your email and we'll send a password reset link.</div>
+      <div id="reset-err" class="login-err"></div>
+      <div class="login-field">
+        <label>Email Address</label>
+        <input id="reset-email" type="email" placeholder="zainab@nutech.edu.pk" onkeydown="if(event.key==='Enter')sendResetEmail()"/>
+      </div>
+      <button class="login-btn" id="reset-btn" onclick="sendResetEmail()">📧 Send Reset Link</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════ MAIN APP ═════════════════ -->
+<div id="app">
+
+  <!-- Mobile overlay -->
+  <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-row">
+        <div class="brand-icon">🌿</div>
+        <div>
+          <div class="brand-name">FoodBridge</div>
+          <div class="brand-tag">Waste Management System</div>
+        </div>
+      </div>
+    </div>
+    <nav>
+      <div class="nav-section-label">Overview</div>
+      <div class="nav-item active" onclick="navigate('dashboard');closeSidebar()"><span class="nav-icon">📊</span>Dashboard</div>
+      <div class="nav-section-label">Management</div>
+      <div class="nav-item" onclick="navigate('donors');closeSidebar()"><span class="nav-icon">🤝</span>Donors</div>
+      <div class="nav-item" onclick="navigate('donations');closeSidebar()"><span class="nav-icon">📦</span>Donations</div>
+      <div class="nav-item" onclick="navigate('fooditems');closeSidebar()"><span class="nav-icon">🥗</span>Food Items</div>
+      <div class="nav-item" onclick="navigate('receivers');closeSidebar()"><span class="nav-icon">🏠</span>Receivers</div>
+      <div class="nav-item" onclick="navigate('requests');closeSidebar()"><span class="nav-icon">📋</span>Requests</div>
+      <div class="nav-section-label admin-only">Admin</div>
+      <div class="nav-item admin-only" onclick="navigate('admin');closeSidebar()"><span class="nav-icon">🛡️</span>Admin Panel</div>
+      <div class="nav-item admin-only" onclick="navigate('locations');closeSidebar()"><span class="nav-icon">📍</span>Locations</div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="signout-btn" onclick="signOut()">🚪 Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main id="main">
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" onclick="openSidebar()" aria-label="Open menu">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="topbar-title" id="page-title">Dashboard</div>
+      </div>
+      <div class="topbar-right">
+        <div class="user-chip"><div class="user-dot"></div><span id="user-email-display">—</span></div>
+        <span id="db-status" class="badge badge-gray">Connecting…</span>
+      </div>
+    </div>
+
+    <!-- ── DASHBOARD ── -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card green"><span class="stat-icon">📦</span><div class="stat-value" id="stat-donations">—</div><div class="stat-label">Total Donations</div></div>
+        <div class="stat-card lime"><span class="stat-icon">🤝</span><div class="stat-value" id="stat-donors">—</div><div class="stat-label">Registered Donors</div></div>
+        <div class="stat-card amber"><span class="stat-icon">🏠</span><div class="stat-value" id="stat-receivers">—</div><div class="stat-label">Receivers</div></div>
+        <div class="stat-card red"><span class="stat-icon">⏰</span><div class="stat-value" id="stat-expiring">—</div><div class="stat-label">Expiring in 24h</div></div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header"><span class="card-title">📦 Recent Donations</span><button class="btn btn-secondary btn-sm" onclick="navigate('donations')">View all</button></div>
+          <div class="card-body" id="recent-donations"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">⚠️ Expiring Food Items</span><button class="btn btn-secondary btn-sm" onclick="navigate('fooditems')">View all</button></div>
+          <div class="card-body" id="expiring-items"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+        </div>
+      </div>
+      <div style="margin-top:18px;" class="card">
+        <div class="card-header"><span class="card-title">📋 Pending Requests</span><button class="btn btn-secondary btn-sm" onclick="navigate('requests')">Manage</button></div>
+        <div class="card-body" id="pending-requests-dash"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- ── DONORS ── -->
+    <div class="page" id="page-donors">
+      <div class="section-header">
+        <div><div class="section-title">Donors</div><div class="section-sub">People and restaurants who donate food</div></div>
+        <button class="btn btn-primary admin-only" onclick="openModal('modal-add-donor')">+ Add Donor</button>
+      </div>
+      <div class="card">
+        <div class="search-bar">
+          <input class="search-input" id="search-donors" placeholder="🔍 Search donors…" oninput="filterTable('donors-tbody',this.value)"/>
+        </div>
+        <div class="table-wrap">
+          <table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>City</th><th>Phone</th><th>Actions</th></tr></thead>
+          <tbody id="donors-tbody"><tr><td colspan="6"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DONATIONS ── -->
+    <div class="page" id="page-donations">
+      <div class="section-header">
+        <div><div class="section-title">Donations</div><div class="section-sub">All food donation records</div></div>
+        <button class="btn btn-primary admin-only" onclick="openModal('modal-add-donation')">+ New Donation</button>
+        <button class="btn btn-primary user-only" onclick="openModal('modal-donate-food')" style="display:none;">🍽️ Donate Food</button>
+      </div>
+
+      <!-- User donate CTA banner -->
+      <div class="user-only" id="donate-cta" style="display:none;background:linear-gradient(135deg,#dcfce7,#f0fdf4);border:1px solid var(--g300);border-radius:var(--radius);padding:20px 24px;margin-bottom:18px;display:none;align-items:center;gap:16px;">
+        <div style="font-size:36px;">🍱</div>
+        <div style="flex:1;">
+          <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:16px;font-weight:700;color:var(--g800);">Have food to donate?</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:3px;">Fill in a quick form and we'll connect it with people in need. Admin will review before it goes live.</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-donate-food')">🍽️ Donate Food</button>
+      </div>
+
+      <div class="card">
+        <div class="search-bar">
+          <input class="search-input" id="search-donations" placeholder="🔍 Search donations…" oninput="filterTable('donations-tbody',this.value)"/>
+          <select class="filter-select" id="filter-donation-status" onchange="loadDonations()">
+            <option value="">All statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="Approved">Approved</option>
+            <option value="Distributed">Distributed</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table><thead><tr><th>ID</th><th>Donor</th><th>Location</th><th>Date</th><th>Status</th><th class="admin-only">Actions</th></tr></thead>
+          <tbody id="donations-tbody"><tr><td colspan="6"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FOOD ITEMS ── -->
+    <div class="page" id="page-fooditems">
+      <div class="section-header">
+        <div><div class="section-title">Food Items</div><div class="section-sub">All food items with expiry tracking</div></div>
+        <button class="btn btn-primary admin-only" onclick="openModal('modal-add-food')">+ Add Food Item</button>
+      </div>
+      <div class="card">
+        <div class="search-bar">
+          <input class="search-input" placeholder="🔍 Search food…" oninput="filterTable('food-tbody',this.value)"/>
+          <select class="filter-select" id="filter-food-cat" onchange="loadFoodItems()">
+            <option value="">All categories</option>
+            <option value="Cooked">Cooked</option>
+            <option value="Raw">Raw</option>
+            <option value="Packaged">Packaged</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table><thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Qty</th><th>Expiry</th><th>Donation</th><th>Actions</th></tr></thead>
+          <tbody id="food-tbody"><tr><td colspan="7"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RECEIVERS ── -->
+    <div class="page" id="page-receivers">
+      <div class="section-header">
+        <div><div class="section-title">Receivers</div><div class="section-sub">NGOs and individuals receiving donations</div></div>
+        <button class="btn btn-primary admin-only" onclick="openModal('modal-add-receiver')">+ Add Receiver</button>
+      </div>
+      <div class="card">
+        <div class="search-bar">
+          <input class="search-input" placeholder="🔍 Search receivers…" oninput="filterTable('receivers-tbody',this.value)"/>
+        </div>
+        <div class="table-wrap">
+          <table><thead><tr><th>ID</th><th>Name</th><th>Type</th><th>City</th><th>Phone</th><th>Requests</th><th>Actions</th></tr></thead>
+          <tbody id="receivers-tbody"><tr><td colspan="7"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── REQUESTS ── -->
+    <div class="page" id="page-requests">
+      <div class="section-header">
+        <div><div class="section-title">Requests</div><div class="section-sub" id="requests-sub">Food distribution requests</div></div>
+        <button class="btn btn-primary admin-only" onclick="openModal('modal-add-request')">+ New Request</button>
+      </div>
+
+      <!-- Available food cards — visible to regular users only -->
+      <div id="available-food-section" style="display:none;">
+        <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:15px;font-weight:700;margin-bottom:12px;">🍱 Available Donations — Browse &amp; Request</div>
+        <div class="three-col" id="available-food-grid"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+        <div style="margin:24px 0 8px;font-family:'Bricolage Grotesque',sans-serif;font-size:15px;font-weight:700;">📋 My Submitted Requests</div>
+      </div>
+
+      <div class="card">
+        <div class="search-bar">
+          <input class="search-input" placeholder="🔍 Search requests…" oninput="filterTable('requests-tbody',this.value)"/>
+          <select class="filter-select" id="filter-req-status" onchange="loadRequests()">
+            <option value="">All statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="Fulfilled">Fulfilled</option>
+            <option value="Rejected">Rejected</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table><thead><tr><th>ID</th><th>Receiver</th><th>Donation</th><th>Qty</th><th>Status</th><th class="admin-only">Actions</th></tr></thead>
+          <tbody id="requests-tbody"><tr><td colspan="6"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ADMIN ── -->
+    <div class="page" id="page-admin">
+      <div class="section-header">
+        <div><div class="section-title">Admin Panel</div><div class="section-sub">Approve or reject pending donations</div></div>
+      </div>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="card-header"><span class="card-title">🕐 Pending Donations — Awaiting Approval</span></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>ID</th><th>Donor</th><th>Location</th><th>Food Items</th><th>Submitted</th><th>Actions</th></tr></thead>
+          <tbody id="admin-tbody"><tr><td colspan="6"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody></table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">👤 Admin Accounts</span></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Level</th></tr></thead>
+          <tbody id="admins-tbody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LOCATIONS ── -->
+    <div class="page" id="page-locations">
+      <div class="section-header">
+        <div><div class="section-title">Locations</div><div class="section-sub">Food collection and pickup points</div></div>
+        <button class="btn btn-primary" onclick="openModal('modal-add-location')">+ Add Location</button>
+      </div>
+      <div class="three-col" id="locations-grid"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+    </div>
+  </main>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div id="confirm-dialog">
+  <div class="confirm-box">
+    <div class="confirm-icon">🗑️</div>
+    <div class="confirm-title" id="confirm-title">Delete this record?</div>
+    <div class="confirm-msg" id="confirm-msg">This action cannot be undone.</div>
+    <div class="confirm-btns">
+      <button class="btn btn-secondary" onclick="document.getElementById('confirm-dialog').classList.remove('open')">Cancel</button>
+      <button class="btn btn-danger" id="confirm-ok">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════ MODALS ═════════════════ -->
+
+<!-- Add Donor -->
+<div class="modal-backdrop" id="modal-add-donor">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">🤝 Add New Donor</span><button class="modal-close" onclick="closeModal('modal-add-donor')">×</button></div>
+    <div class="modal-body">
+      <div id="alert-donor" class="alert"></div>
+      <div class="form-grid">
+        <div class="form-group"><label>First Name *</label><input id="d-fname" placeholder="Sara"/></div>
+        <div class="form-group"><label>Last Name *</label><input id="d-lname" placeholder="Ahmed"/></div>
+        <div class="form-group full"><label>Email *</label><input id="d-email" type="email" placeholder="sara@email.com"/></div>
+        <div class="form-group full"><label>Phone Number</label><input id="d-phone" placeholder="0300-1234567"/></div>
+        <div class="form-group"><label>House No</label><input id="d-house" placeholder="12A"/></div>
+        <div class="form-group"><label>Street</label><input id="d-street" placeholder="Jinnah Ave"/></div>
+        <div class="form-group"><label>City</label><input id="d-city" placeholder="Islamabad"/></div>
+        <div class="form-group"><label>Postal Code</label><input id="d-postal" placeholder="44000"/></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-donor')">Cancel</button>
+      <button class="btn btn-primary" onclick="addDonor()">💾 Save Donor</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Donation -->
+<div class="modal-backdrop" id="modal-add-donation">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">📦 New Donation</span><button class="modal-close" onclick="closeModal('modal-add-donation')">×</button></div>
+    <div class="modal-body">
+      <div id="alert-donation" class="alert"></div>
+      <div class="form-grid">
+        <div class="form-group full"><label>Donor *</label><select id="don-donor"><option value="">— Select Donor —</option></select></div>
+        <div class="form-group full"><label>Location</label><select id="don-location"><option value="">— No location —</option></select></div>
+        <div class="form-group full"><label>Status</label>
+          <select id="don-status"><option value="Pending">Pending</option><option value="Approved">Approved</option><option value="Distributed">Distributed</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-donation')">Cancel</button>
+      <button class="btn btn-primary" onclick="addDonation()">💾 Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Food Item -->
+<div class="modal-backdrop" id="modal-add-food">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">🥗 Add Food Item</span><button class="modal-close" onclick="closeModal('modal-add-food')">×</button></div>
+    <div class="modal-body">
+      <div id="alert-food" class="alert"></div>
+      <div class="form-grid">
+        <div class="form-group full"><label>Donation *</label><select id="fi-donation"><option value="">— Select Donation —</option></select></div>
+        <div class="form-group full"><label>Food Name *</label><input id="fi-name" placeholder="Biryani, Bread Loaves…"/></div>
+        <div class="form-group"><label>Category</label>
+          <select id="fi-category"><option value="Cooked">Cooked</option><option value="Raw">Raw</option><option value="Packaged">Packaged</option></select>
+        </div>
+        <div class="form-group"><label>Quantity *</label><input id="fi-qty" type="number" min="0.1" step="0.1" placeholder="10"/></div>
+        <div class="form-group full"><label>Expiry Date & Time *</label><input id="fi-expiry" type="datetime-local"/></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-food')">Cancel</button>
+      <button class="btn btn-primary" onclick="addFoodItem()">💾 Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Receiver -->
+<div class="modal-backdrop" id="modal-add-receiver">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">🏠 Add Receiver</span><button class="modal-close" onclick="closeModal('modal-add-receiver')">×</button></div>
+    <div class="modal-body">
+      <div id="alert-receiver" class="alert"></div>
+      <div class="form-grid">
+        <div class="form-group full"><label>Name / Organization *</label><input id="r-name" placeholder="Edhi Foundation"/></div>
+        <div class="form-group full"><label>Type *</label><select id="r-type"><option value="NGO">NGO</option><option value="Individual">Individual</option></select></div>
+        <div class="form-group full"><label>Phone Number</label><input id="r-phone" placeholder="021-1112233"/></div>
+        <div class="form-group"><label>House No</label><input id="r-house" placeholder="Plot 5"/></div>
+        <div class="form-group"><label>Street</label><input id="r-street" placeholder="Edhi Road"/></div>
+        <div class="form-group"><label>City</label><input id="r-city" placeholder="Karachi"/></div>
+        <div class="form-group"><label>Postal Code</label><input id="r-postal" placeholder="75700"/></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-receiver')">Cancel</button>
+      <button class="btn btn-primary" onclick="addReceiver()">💾 Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Request -->
+<div class="modal-backdrop" id="modal-add-request">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">📋 New Request</span><button class="modal-close" onclick="closeModal('modal-add-request')">×</button></div>
+    <div class="modal-body">
+      <div id="alert-request" class="alert"></div>
+      <div class="form-grid">
+        <div class="form-group full"><label id="req-receiver-label">Your Name / Organization *</label><select id="req-receiver"><option value="">— Select your name —</option></select></div>
+        <div class="form-group full"><label>Available Donation *</label><select id="req-donation"><option value="">— Select a donation —</option></select></div>
+        <div class="form-group full"><label>Quantity Needed *</label><input id="req-qty" type="number" min="0.1" step="0.1" placeholder="e.g. 10"/></div>
+        <div class="form-group full admin-only"><label>Status</label>
+          <select id="req-status"><option value="Pending">Pending</option><option value="Fulfilled">Fulfilled</option><option value="Rejected">Rejected</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-request')">Cancel</button>
+      <button class="btn btn-primary" onclick="addRequest()">📋 Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Location -->
+<div class="modal-backdrop" id="modal-add-location">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">📍 Add Location</span><button class="modal-close" onclick="closeModal('modal-add-location')">×</button></div>
+    <div class="modal-body">
+      <div id="alert-location" class="alert"></div>
+      <div class="form-grid">
+        <div class="form-group full"><label>Area Name *</label><input id="loc-area" placeholder="Blue Area"/></div>
+        <div class="form-group full"><label>City *</label><input id="loc-city" placeholder="Islamabad"/></div>
+        <div class="form-group full"><label>Pickup Point</label><input id="loc-pickup" placeholder="Gate 3, Community Center"/></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-location')">Cancel</button>
+      <button class="btn btn-primary" onclick="addLocation()">💾 Save</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Donate Food (regular user) -->
+<div class="modal-backdrop" id="modal-donate-food">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header"><span class="modal-title">🍽️ Donate Food</span><button class="modal-close" onclick="closeModal('modal-donate-food')">×</button></div>
+    <div class="modal-body">
+      <div id="alert-donate" class="alert"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Your Details</div>
+      <div class="form-grid">
+        <div class="form-group"><label>First Name *</label><input id="dn-fname" placeholder="Sara"/></div>
+        <div class="form-group"><label>Last Name *</label><input id="dn-lname" placeholder="Ahmed"/></div>
+        <div class="form-group full"><label>Email *</label><input id="dn-email" type="email" placeholder="sara@email.com"/></div>
+        <div class="form-group full"><label>Phone Number</label><input id="dn-phone" placeholder="0300-1234567"/></div>
+        <div class="form-group full"><label>City</label><input id="dn-city" placeholder="Islamabad"/></div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin:16px 0 10px;">Food Details</div>
+      <div class="form-grid">
+        <div class="form-group full"><label>Food Name *</label><input id="dn-food-name" placeholder="Biryani, Bread Loaves, Rice…"/></div>
+        <div class="form-group"><label>Category *</label>
+          <select id="dn-category"><option value="Cooked">Cooked</option><option value="Raw">Raw</option><option value="Packaged">Packaged</option></select>
+        </div>
+        <div class="form-group"><label>Quantity *</label><input id="dn-qty" type="number" min="0.1" step="0.1" placeholder="e.g. 10"/></div>
+        <div class="form-group full"><label>Expiry Date &amp; Time *</label><input id="dn-expiry" type="datetime-local"/></div>
+        <div class="form-group full"><label>Pickup Location</label><select id="dn-location"><option value="">— No specific location —</option></select></div>
+      </div>
+      <div style="margin-top:14px;padding:10px 14px;background:var(--g50);border:1px solid var(--g200);border-radius:10px;font-size:12px;color:var(--muted);">
+        ℹ️ Your donation will be reviewed by the admin before becoming available to receivers.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-donate-food')">Cancel</button>
+      <button class="btn btn-primary" id="btn-submit-donate" onclick="submitDonation()">🍽️ Submit Donation</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
